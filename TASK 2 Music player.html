@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Music Player</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body { font-family: sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-900 text-white p-6">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4">Music Player</h1>
+
+    <!-- Upload Song -->
+    <div class="mb-4">
+      <input id="fileInput" type="file" accept="audio/*" class="mb-2" />
+      <input id="customTitle" type="text" placeholder="Title" class="p-1 rounded text-black" />
+      <input id="customArtist" type="text" placeholder="Artist" class="p-1 rounded text-black" />
+      <input id="customGenre" type="text" placeholder="Genre" class="p-1 rounded text-black" />
+      <button id="uploadBtn" class="ml-2 px-3 py-1 bg-green-600 rounded">Add Song</button>
+    </div>
+
+    <!-- Search Bar -->
+    <input id="searchInput" type="text" placeholder="Search..." class="w-full p-2 mb-4 text-black rounded" />
+
+    <!-- Category Buttons -->
+    <div id="categoryButtons" class="flex space-x-2 mb-4">
+      <button data-genre="All" class="px-3 py-1 bg-blue-600 rounded">All</button>
+      <button data-genre="Pop" class="px-3 py-1 bg-blue-600 rounded">Pop</button>
+      <button data-genre="Rock" class="px-3 py-1 bg-blue-600 rounded">Rock</button>
+      <button data-genre="Jazz" class="px-3 py-1 bg-blue-600 rounded">Jazz</button>
+    </div>
+
+    <!-- Playlist -->
+    <ul id="playlist" class="mb-6 space-y-2"></ul>
+
+    <!-- Song Info -->
+    <div id="songInfo" class="mb-4 flex items-center space-x-4">
+      <img id="albumArt" src="" alt="Album Art" class="w-24 h-24 rounded hidden" />
+      <div>
+        <p id="songTitle" class="text-xl font-semibold"></p>
+        <p id="songArtist" class="text-gray-300"></p>
+        <p id="songDuration" class="text-sm text-gray-400"></p>
+      </div>
+    </div>
+
+    <!-- Audio Controls -->
+    <div class="flex items-center space-x-4">
+      <button id="prev">⏮️</button>
+      <button id="playPause">▶️</button>
+      <button id="next">⏭️</button>
+      <input type="range" id="volume" min="0" max="1" step="0.01" value="1" class="w-32" />
+    </div>
+
+    <audio id="audio" controls hidden></audio>
+  </div>
+
+  <script>
+    const songs = [
+      { title: "Track One", artist: "Artist A", genre: "Pop", file: "song1.mp3", albumArt: "", duration: "" },
+      { title: "Track Two", artist: "Artist B", genre: "Rock", file: "song2.mp3", albumArt: "", duration: "" },
+      { title: "Track Three", artist: "Artist C", genre: "Jazz", file: "song3.mp3", albumArt: "", duration: "" }
+    ];
+
+    const playlistEl = document.getElementById('playlist');
+    const searchInput = document.getElementById('searchInput');
+    const audio = document.getElementById('audio');
+    const playPauseBtn = document.getElementById('playPause');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const volumeSlider = document.getElementById('volume');
+    const songTitle = document.getElementById('songTitle');
+    const songArtist = document.getElementById('songArtist');
+    const songDuration = document.getElementById('songDuration');
+    const albumArt = document.getElementById('albumArt');
+    const fileInput = document.getElementById('fileInput');
+    const customTitle = document.getElementById('customTitle');
+    const customArtist = document.getElementById('customArtist');
+    const customGenre = document.getElementById('customGenre');
+    const uploadBtn = document.getElementById('uploadBtn');
+    let currentIndex = 0;
+
+    function renderPlaylist(filter = '') {
+      playlistEl.innerHTML = '';
+      songs
+        .filter(song => song.title.toLowerCase().includes(filter.toLowerCase()) || song.artist.toLowerCase().includes(filter.toLowerCase()))
+        .forEach((song, index) => {
+          const li = document.createElement('li');
+          li.textContent = `${song.title} - ${song.artist}`;
+          li.className = 'cursor-pointer hover:bg-gray-700 p-2 rounded';
+          li.onclick = () => playSong(index);
+          playlistEl.appendChild(li);
+        });
+    }
+
+    function updateSongInfo(song) {
+      songTitle.textContent = song.title;
+      songArtist.textContent = song.artist;
+      albumArt.src = song.albumArt || '';
+      albumArt.classList.toggle('hidden', !song.albumArt);
+      if (!isNaN(audio.duration)) {
+        const mins = Math.floor(audio.duration / 60);
+        const secs = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+        songDuration.textContent = `${mins}:${secs}`;
+      } else {
+        songDuration.textContent = '';
+      }
+    }
+
+    function playSong(index) {
+      currentIndex = index;
+      audio.src = songs[currentIndex].file;
+      audio.play();
+      playPauseBtn.textContent = '⏸️';
+      updateSongInfo(songs[currentIndex]);
+    }
+
+    function togglePlayPause() {
+      if (audio.paused) {
+        audio.play();
+        playPauseBtn.textContent = '⏸️';
+      } else {
+        audio.pause();
+        playPauseBtn.textContent = '▶️';
+      }
+    }
+
+    function changeSong(direction) {
+      currentIndex = (currentIndex + direction + songs.length) % songs.length;
+      playSong(currentIndex);
+    }
+
+    function filterByGenre(genre) {
+      renderPlaylist(genre === 'All' ? '' : genre);
+    }
+
+    function addCustomSong() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      songs.push({
+        title: customTitle.value || file.name,
+        artist: customArtist.value || "Unknown",
+        genre: customGenre.value || "Other",
+        file: url,
+        albumArt: '',
+        duration: ''
+      });
+      renderPlaylist();
+      fileInput.value = '';
+      customTitle.value = '';
+      customArtist.value = '';
+      customGenre.value = '';
+    }
+
+    // Event Listeners
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    prevBtn.addEventListener('click', () => changeSong(-1));
+    nextBtn.addEventListener('click', () => changeSong(1));
+    volumeSlider.addEventListener('input', e => audio.volume = e.target.value);
+    searchInput.addEventListener('input', e => renderPlaylist(e.target.value));
+    uploadBtn.addEventListener('click', addCustomSong);
+
+    document.querySelectorAll('#categoryButtons button').forEach(btn => {
+      btn.addEventListener('click', () => filterByGenre(btn.dataset.genre));
+    });
+
+    audio.addEventListener('loadedmetadata', () => updateSongInfo(songs[currentIndex]));
+
+    renderPlaylist();
+  </script>
+</body>
+</html>
